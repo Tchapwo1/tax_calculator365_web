@@ -1,0 +1,55 @@
+import fs from 'fs';
+import path from 'path';
+import matter from 'gray-matter';
+import { remark } from 'remark';
+import html from 'remark-html';
+
+const contentDirectory = path.join(process.cwd(), 'src/content');
+
+export async function getPostData(slug: string) {
+  const fullPath = path.join(contentDirectory, `${slug}.md`);
+  const fileContents = fs.readFileSync(fullPath, 'utf8');
+
+  // Use gray-matter to parse the post metadata section
+  const matterResult = matter(fileContents);
+
+  // Use remark to convert markdown into HTML string
+  const processedContent = await remark()
+    .use(html)
+    .process(matterResult.content);
+  const contentHtml = processedContent.toString();
+
+  return {
+    slug,
+    contentHtml,
+    ...matterResult.data,
+  };
+}
+
+export function getAllPostSlugs() {
+  const fileNames = fs.readdirSync(contentDirectory).filter(fn => fn.endsWith('.md'));
+  return fileNames.map((fileName) => {
+    return {
+      params: {
+        slug: fileName.replace(/\.md$/, ''),
+      },
+    };
+  });
+}
+
+export function getAllPosts() {
+  const fileNames = fs.readdirSync(contentDirectory).filter(fn => fn.endsWith('.md'));
+  const allPostsData = fileNames.map((fileName) => {
+    const slug = fileName.replace(/\.md$/, '');
+    const fullPath = path.join(contentDirectory, fileName);
+    const fileContents = fs.readFileSync(fullPath, 'utf8');
+    const matterResult = matter(fileContents);
+
+    return {
+      slug,
+      ...matterResult.data,
+    };
+  });
+  return allPostsData;
+}
+
